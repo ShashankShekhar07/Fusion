@@ -1019,3 +1019,47 @@ def performTransfer(request,id):
     
     serializer = StockTransferSerializer(stock_transfers,many=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def outboxview2(request, id):
+    currentDesignation = request.GET.get('role')  # Capture role from headers
+    if currentDesignation=="student":
+        return Response({'error': 'Student are not allowd to access this view'}, status=403)
+    # if request.session.get('currentDesignationSelected') == "student":
+    #     return Response({'error': 'Students are not allowed to access this view'}, status=403)
+ 
+    designation = HoldsDesignation.objects.filter(user=request.user, designation__name=currentDesignation).first()
+
+    if not designation:
+        return Response({'error': 'Designation not found'}, status=404)
+
+    # if str(id) != str(designation.id):
+    #     return redirect(f'/purchase-and-store/indentview2/{designation.id}')
+
+    abcd = get_object_or_404(HoldsDesignation, pk=id)
+    s = str(abcd).split(" - ")
+    designations = s[1]
+    
+    # Fetch inbox and outbox data
+    data = view_outbox(request.user.username, designations, "ps1")
+
+    # Sort the inbox data by upload_date
+    data = sorted(data, key=lambda x: datetime.fromisoformat(x['upload_date']), reverse=True)
+
+    # Format the upload_date to datetime object
+    for item in data:
+        item['upload_date'] = datetime.fromisoformat(item['upload_date'])
+
+    notifs = request.user.notifications.all().values()  # Assuming notifications are a related field
+
+    context = {
+        'receive_design': HoldsDesignationSerializer(abcd).data,
+        'in_file': data,
+        'department': request.user.extrainfo.department.name,
+        'notifications': list(notifs),
+    }
+
+    return Response(context)
