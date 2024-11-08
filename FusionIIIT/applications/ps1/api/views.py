@@ -1019,3 +1019,41 @@ def performTransfer(request,id):
     
     serializer = StockTransferSerializer(stock_transfers,many=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def archieveview(request,id):
+    currentDesignation = request.GET.get('role')  # Capture role from headers
+    if currentDesignation=="student":
+        return Response({'error': 'Student are not allowd to access this view'}, status=403)
+    
+    designation = HoldsDesignation.objects.filter(user=request.user, designation__name=currentDesignation).first()
+    
+    if str(id) != str(designation.id):
+        return redirect(f'/purchase-and-store/archieveview/{designation.id}')
+    print("id : ",id);
+    print("request.user : ",request.user);
+    
+    abcd = HoldsDesignation.objects.get(pk=id)
+    s = str(abcd).split(" - ")
+    designations = s[1]
+    print("designations : ",designations);
+
+    archived_files = view_archived(
+    username=request.user,
+    designation=designations,
+    src_module="ps1"
+    )
+
+    print("archived_files : ",archived_files);
+    for files in archived_files:
+        files['upload_date']=datetime.fromisoformat(files['upload_date'])
+        files['upload_date']=files['upload_date'].strftime("%B %d, %Y, %I:%M %p") 
+    
+    notifs = request.user.notifications.all().values()
+    context = {
+        'archieves' : archived_files,
+        'designations': designations,
+        'notifications':list(notifs)
+    }
+    return Response(context)
