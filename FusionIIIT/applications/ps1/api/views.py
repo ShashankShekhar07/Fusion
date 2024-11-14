@@ -1031,7 +1031,7 @@ def archieveview(request,id):
     
     if str(id) != str(designation.id):
         return redirect(f'/purchase-and-store/archieveview/{designation.id}')
-    print("id : ",id);
+    print("id : ",id)
     print("request.user : ",request.user);
     
     abcd = HoldsDesignation.objects.get(pk=id)
