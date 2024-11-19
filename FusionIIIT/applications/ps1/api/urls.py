@@ -41,7 +41,7 @@ urlpatterns = [
     url(r'^entry/(?P<id>\d+)$', views.entry, name='entry'),
 
     # To add stock corresponding to a Indent File
-    url(r'^stockEntry/(?P<id>\d+)$', views.stockEntry, name='stock-entry'),
+    url(r'^stockEntry/<str:username>/$', views.stockEntry, name='stock-entry'),
 
     # To view all the stock entry details
     url(r'^stock_entry_view/(?P<id>\d+)$', views.stockEntryView, name='stock-entry-view'),

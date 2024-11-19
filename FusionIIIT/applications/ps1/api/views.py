@@ -863,32 +863,31 @@ def entry(request,id):
 
 #         serializer = StockEntrySerializer(stock_entry)
 #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def stockEntry(request,id):
-    # print(request.data);
-    # retrieves user id from username
+def stockEntry(request,username):
+    # retrieves id from username
     user = User.objects.get(username=username)
     user_id = user.id
+    # print(request.data);
+    
     designation = str(Designation.objects.get(id=HoldsDesignation.objects.select_related('user', 'working', 'designation').get(id=id).designation_id))
-    # if str(designation) not in dept_admin_design + ["ps_admin"]:
-    #         return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+    # print(designation)
+    if str(designation) not in dept_admin_design + ["ps_admin"]:
+            return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'POST':
-        print(designation)
 
+        id = request.POST.get('id')
         vendor = request.POST.get('vendor')
         current_stock = request.POST.get('current_stock')
-        try:
-            recieved_date = request.data.get('recieved_date')  # Match the typo for now
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
+        # received_date = request.POST.get('received_date')
         bill = request.FILES.get('bill')
         location = request.POST.get('location')
 
         try:
-            temp1 = File.objects.get(id=idd)
+            temp1 = File.objects.get(id=user_id)
             temp = IndentFile.objects.get(file_info=temp1)
         except (File.DoesNotExist, IndentFile.DoesNotExist):
             return Response({"message": "File with given ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
@@ -897,17 +896,18 @@ def stockEntry(request,id):
         dealing_assistant_id = request.user.extrainfo
 
         print(request.data)
-        print("HI Stockentry")
+
         stock_entry = StockEntry.objects.create(
                 item_id=item_id,
                 vendor=vendor,
                 current_stock=current_stock,
                 dealing_assistant_id=dealing_assistant_id,
                 bill=bill,
-                recieved_date=recieved_date,
+                # received_date=received_date,
                 location=location
             )
 
+        # Marking the indent file as done
         temp.purchased = True
         temp.save()
 
