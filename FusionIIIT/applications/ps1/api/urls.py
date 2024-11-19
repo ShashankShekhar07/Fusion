@@ -27,7 +27,7 @@ urlpatterns = [
     url(r'^inwardIndents/(?P<id>\d+)$', views.inwardIndents, name='inward-indents'),
 
 
-    url(r'^outboxview2/(?P<id>\d+)/$', views.outboxview2, name='outboxview2'),
+    url(r'^outboxview2/<str:username>/$', views.outboxview2, name='outboxview2'),
 
 
     # to see the details of a specifc indent file

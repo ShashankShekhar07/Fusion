@@ -471,7 +471,6 @@ def indentView2(request, username):
             item['receiver_design_id'] = tracking_entry.receive_design.id if tracking_entry.receive_design else None
             item['receiver_designation_name'] = tracking_entry.receive_design.name if tracking_entry.receive_design else None
     
-    outboxd = view_outbox(request.user.username, designations, "ps1")
 
     # Sort the inbox data by upload_date
     data = sorted(data, key=lambda x: datetime.fromisoformat(x['upload_date']), reverse=True)
@@ -540,7 +539,6 @@ def inwardIndents(request, id):
         abcd = HoldsDesignation.objects.get(pk=id)
         
         data = view_inbox(request.user.username, designation, "ps1")
-        # outboxd = view_outbox(request.user.username, designations, "ps1")
         
         data = sorted(data, key=lambda x: datetime.fromisoformat(x['upload_date']), reverse=True)
         for item in data:
@@ -594,88 +592,6 @@ def indentFile(request, id):
     else:
         return Response({"message": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
-
-
-# Forwarding Indent 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def ForwardIndentFile(request, id):
-
-#     if request.method == 'POST':
-#         try:
-#             indent = IndentFile.objects.select_related('file_info').get(file_info=id)
-#             file = indent.file_info
-#             track = Tracking.objects.select_related(
-#                 'file_id__uploader__user', 'file_id__uploader__department',
-#                 'file_id__designation', 'current_id__user', 
-#                 'current_id__department', 'current_design__user', 
-#                 'current_design__working', 'current_design__designation', 
-#                 'receiver_id', 'receive_design'
-#             ).filter(file_id=file)
-#         except IndentFile.DoesNotExist:
-#             return Response({"message": "Indent file does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
-#         # Extracting data from request.POST
-#         remarks = request.data.get('remarks')
-#         sender_design_id = request.data.get('sender')
-#         receiverHdid = request.data.get('receive')
-#         upload_file = request.FILES.get('myfile')
-
-#         # Retrieving sender and receiver designations
-#         sender_designationobj = HoldsDesignation.objects.get(id=sender_design_id).designation
-#         sender_designation_name = sender_designationobj.name
-#         receiverHdobj = HoldsDesignation.objects.get(id=receiverHdid)
-#         receiver = receiverHdobj.user.username
-#         receive_design = receiverHdobj.designation.name
-
-#         try:
-#             receiver_id = User.objects.get(username=receiver)
-#         except User.DoesNotExist:
-#             return Response({"message": "Enter a valid destination"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             receive_design = Designation.objects.get(name=receive_design)
-#         except Designation.DoesNotExist:
-#             return Response({"message": "Enter a valid designation"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Forwarding the file
-#         forwarded_file_id = forward_file(
-#             file_id=file.id,
-#             receiver=receiver_id,
-#             receiver_designation=receive_design,
-#             file_extra_JSON={"key": 2},
-#             remarks=remarks,
-#             file_attachment=upload_file
-#         )
-
-#         # Updating indent approval logic
-#         if str(receive_design) in dept_admin_design:
-#             # Department head approval
-#             indent.head_approval = True
-#         elif sender_designation_name in dept_admin_design or sender_designation_name == "ps_admin":
-#             if str(receive_design) == "Director":
-#                 # Forwarded to Director, mark head approval
-#                 indent.head_approval = True
-#             elif str(receive_design) == indent.file_info.uploader.user.username:
-#                 # If Director forwards it to the indenter, consider the indent approved
-#                 indent.director_approval = True
-
-#         indent.save()
-
-#         # Serializing the data
-#         indent_serializer = IndentFileSerializer(indent)
-#         track_serializer = TrackingSerializer(track, many=True)
-
-#         # Constructing response data
-#         response_data = {
-#             'indent_file': indent_serializer.data,
-#             'track': track_serializer.data,
-#             'message': 'Indent File Forwarded successfully'
-#         }
-
-#         return Response(response_data, status=status.HTTP_200_OK)
-#     else:
-#         return Response({"message": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -758,22 +674,20 @@ def ForwardIndentFile(request, id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def outboxview2(request, id):
+def outboxview2(request, username):
+    # retrieves user id from user object which is retrieved using username from User class
+    user = User.objects.get(username=username)
+    user_id = user.id
     currentDesignation = request.GET.get('role')  # Capture role from headers
     if currentDesignation=="student":
         return Response({'error': 'Student are not allowd to access this view'}, status=403)
-    # if request.session.get('currentDesignationSelected') == "student":
-    #     return Response({'error': 'Students are not allowed to access this view'}, status=403)
  
     designation = HoldsDesignation.objects.filter(user=request.user, designation__name=currentDesignation).first()
 
     if not designation:
         return Response({'error': 'Designation not found'}, status=404)
 
-    # if str(id) != str(designation.id):
-    #     return redirect(f'/purchase-and-store/indentview2/{designation.id}')
-
-    abcd = get_object_or_404(HoldsDesignation, pk=id)
+    abcd = get_object_or_404(HoldsDesignation, pk=user_id)
     s = str(abcd).split(" - ")
     designations = s[1]
     
