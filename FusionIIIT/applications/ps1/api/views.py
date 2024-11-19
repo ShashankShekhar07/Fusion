@@ -715,7 +715,10 @@ def outboxview2(request, username):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def archieveview(request,id):
+def archieveview(request,username):
+    # retrieves user id from username
+    user = User.objects.get(username=username)
+    user_id = user.id
     currentDesignation = request.GET.get('role')  # Capture role from headers
     if currentDesignation=="student":
         return Response({'error': 'Student are not allowd to access this view'}, status=403)
@@ -727,7 +730,7 @@ def archieveview(request,id):
     print("id : ",id);
     print("request.user : ",request.user);
     
-    abcd = HoldsDesignation.objects.get(pk=id)
+    abcd = HoldsDesignation.objects.get(pk=user_id)
     s = str(abcd).split(" - ")
     designations = s[1]
     print("designations : ",designations);
@@ -755,7 +758,7 @@ def archieveview(request,id):
 @permission_classes([IsAuthenticated])
 def archieve_file(request,id):
     file_id=request.GET.get('file_id')
-    print(file_id)
+    print(file_id) 
     res = archive_file(file_id)
     if res:
         return Response({"message": "File has been archived successfully"})
@@ -865,7 +868,9 @@ def entry(request,id):
 @permission_classes([IsAuthenticated])
 def stockEntry(request,id):
     # print(request.data);
-    
+    # retrieves user id from username
+    user = User.objects.get(username=username)
+    user_id = user.id
     designation = str(Designation.objects.get(id=HoldsDesignation.objects.select_related('user', 'working', 'designation').get(id=id).designation_id))
     # if str(designation) not in dept_admin_design + ["ps_admin"]:
     #         return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
@@ -873,7 +878,6 @@ def stockEntry(request,id):
     if request.method == 'POST':
         print(designation)
 
-        idd = request.POST.get('id')
         vendor = request.POST.get('vendor')
         current_stock = request.POST.get('current_stock')
         try:
