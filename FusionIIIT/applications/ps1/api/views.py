@@ -18,6 +18,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 import ast
 from datetime import datetime
+from django.shortcuts import redirect
 
 dept_admin_to_dept = {
     "deptadmin_cse": "CSE",
@@ -687,10 +688,12 @@ def outboxview2(request, username):
     if not designation:
         return Response({'error': 'Designation not found'}, status=404)
 
-    abcd = get_object_or_404(HoldsDesignation, pk=user_id)
-    s = str(abcd).split(" - ")
-    designations = s[1]
-    
+    abcd = HoldsDesignation.objects.filter(user_id=user_id, designation__name=currentDesignation).first()
+    if not abcd:
+        return Response({'error': 'User does not hold the specified designation.'}, status=404)
+
+    designations = abcd.designation.name
+
     # Fetch inbox and outbox data
     data = view_outbox(request.user.username, designations, "ps1")
 
@@ -724,17 +727,17 @@ def archieveview(request,username):
         return Response({'error': 'Student are not allowd to access this view'}, status=403)
     
     designation = HoldsDesignation.objects.filter(user=request.user, designation__name=currentDesignation).first()
-    
-    if str(id) != str(designation.id):
-        return redirect(f'/purchase-and-store/archieveview/{designation.id}')
+    if not designation:
+        return Response({'error': 'Designation not found or mismatch'}, status=404)
     print("id : ",id);
     print("request.user : ",request.user);
     
-    abcd = HoldsDesignation.objects.get(pk=user_id)
-    s = str(abcd).split(" - ")
-    designations = s[1]
-    print("designations : ",designations);
-
+    abcd = HoldsDesignation.objects.filter(user_id=user_id, designation__name=currentDesignation).first()
+    designations = abcd.designation.name
+    if not abcd:
+        return Response({'error': 'User does not hold the specified designation.'}, status=404)
+    print("designations : ",designations)
+    
     archived_files = view_archived(
     username=request.user,
     designation=designations,
@@ -871,12 +874,11 @@ def stockEntry(request,username):
     user = User.objects.get(username=username)
     user_id = user.id
     # print(request.data);
+    currentDesignation = request.FILES.get('role')
+    designation = HoldsDesignation.objects.filter(user=request.user, designation__name=currentDesignation).first()
+    # if str(designation) not in dept_admin_design + ["ps_admin"]:
+    #         return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
     
-    designation = str(Designation.objects.get(id=HoldsDesignation.objects.select_related('user', 'working', 'designation').get(id=id).designation_id))
-    # print(designation)
-    if str(designation) not in dept_admin_design + ["ps_admin"]:
-            return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
-
     if request.method == 'POST':
 
         id = request.POST.get('id')
@@ -884,10 +886,11 @@ def stockEntry(request,username):
         current_stock = request.POST.get('current_stock')
         # received_date = request.POST.get('received_date')
         bill = request.FILES.get('bill')
+        recieved_date = request.data.get('recieved_date')
         location = request.POST.get('location')
 
         try:
-            temp1 = File.objects.get(id=user_id)
+            temp1 = File.objects.get(id=id)
             temp = IndentFile.objects.get(file_info=temp1)
         except (File.DoesNotExist, IndentFile.DoesNotExist):
             return Response({"message": "File with given ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
@@ -895,7 +898,6 @@ def stockEntry(request,username):
         item_id = temp
         dealing_assistant_id = request.user.extrainfo
 
-        print(request.data)
 
         stock_entry = StockEntry.objects.create(
                 item_id=item_id,
@@ -903,7 +905,7 @@ def stockEntry(request,username):
                 current_stock=current_stock,
                 dealing_assistant_id=dealing_assistant_id,
                 bill=bill,
-                # received_date=received_date,
+                recieved_date=recieved_date,
                 location=location
             )
 
